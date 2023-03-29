@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 
+from cleo.ui.question import Question
+
 from typing import TYPE_CHECKING
 
 from poetry.publishing.uploader import Uploader
@@ -72,6 +74,17 @@ class Publisher:
         certificates = self._authenticator.get_certs_for_repository(repository_name)
         resolved_cert = cert or certificates.cert or certificates.verify
         resolved_client_cert = client_cert or certificates.client_cert
+        
+        # Requesting missing credentials but only if there is no cert defined.
+        if not resolved_client_cert:
+            if username is None:
+                username = Question("Username:").ask(self._io)
+
+            # Skip password input if no username is provided, assume unauthenticated
+            if username and password is None:
+                password_question = Question("Password:")
+                password_question.hide()
+                password = password_question.ask(self._io)
 
         self._uploader.auth(username, password)
 
